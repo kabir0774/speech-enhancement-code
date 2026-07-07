@@ -239,7 +239,7 @@ class KnowledgeDistillation(pl.LightningModule):
         train_dataset = VoiceBankDataset(
             split='train',
             sample_rate=16000,
-            segment=3,
+            segment=2,
         )
         train_loader = create_dataloader(mode='train',dataset=train_dataset)
         return train_loader
@@ -248,7 +248,7 @@ class KnowledgeDistillation(pl.LightningModule):
         val_dataset = VoiceBankDataset(
             split='val',
             sample_rate=16000,
-            segment=3,
+            segment=2,
         )
         self.val_dataset = val_dataset
         val_loader = create_dataloader(mode='valid',dataset=val_dataset)
@@ -259,7 +259,7 @@ class KnowledgeDistillation(pl.LightningModule):
 # setup float type
 torch.set_float32_matmul_precision('high')
 # Auto-tunes cuDNN's convolution algorithm selection for the fixed input
-# shape used during training (segment=3s -> constant tensor size), which
+# shape used during training (segment=2s -> constant tensor size), which
 # speeds things up once the first few batches have warmed it up. Safe here
 # because input shape doesn't vary between batches.
 torch.backends.cudnn.benchmark = True
