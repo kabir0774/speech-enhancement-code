@@ -1,12 +1,31 @@
 """
 Configuration for program
 """
+import os
+
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# VoiceBank-DEMAND-16k dataset root. Defaults to ~/VoiceBank-DEMAND-16k
+# (matches /home/harleen_ece/VoiceBank-DEMAND-16k on the training server);
+# override with the VOICEBANK_DEMAND_ROOT env var if it lives elsewhere.
+# Expected structure: clean_trainset_28spk_wav/, noisy_trainset_28spk_wav/,
+# clean_testset_wav/, noisy_testset_wav/, train.scp, test.scp
+DATASET_ROOT = os.environ.get("VOICEBANK_DEMAND_ROOT", os.path.expanduser("~/VoiceBank-DEMAND-16k"))
+
+# train.scp has no dedicated validation split, so dataloader.py
+# deterministically holds out VAL_FRACTION of it (fixed SPLIT_SEED) for
+# per-epoch validation - test.scp is never touched for this.
+VAL_FRACTION = 0.1
+SPLIT_SEED = 42
 
 #distillation
 teacher = 'DCCRN'
 student = 'DCCRN'
 dataset = 'dns_challenge'
-teacher_weight_path = f'/root/NTH_student/Speech_Enhancement_new/DCCRN-with-various-loss-functions/job/dccrn_20230515/chkpt_100.pt'
+# Unused (distill.py loads the teacher from a pretrained HF Hub checkpoint
+# instead - see DCCRNet.from_pretrained(...)); kept portable in case it's
+# ever wired back in.
+teacher_weight_path = os.path.join(PROJECT_ROOT, 'checkpoint_teacher', 'chkpt_100.pt')
 
 lr_decay_rate = 0.1,
 weight_decay = 5e-4,
@@ -39,7 +58,13 @@ loss_mode = 'SDR+PMSQE'
 # hyperparameters for model train
 max_epochs = 20
 learning_rate = 0.0006
-batch = 4  # known-stable value on the 6GB RTX 3050 (batch=8 caused VRAM pressure/slowdown; batch=12 crashed)
+batch = 32  # matches the CLSKD paper (Cheng et al. 2022)'s actual experimental
+# setup - a safe, literature-backed starting point now that we're on a
+# dedicated H100 NVL (94GB) rather than the 6GB RTX 3050 laptop GPU this
+# used to be tuned for (batch=4, since batch=8 caused VRAM pressure/slowdown
+# and batch=12 crashed on that card). Given the H100's headroom this can
+# likely go higher than 32 - raise and watch VRAM/throughput if you want to
+# push further.
 
 
 ########################### STUDENT ###########################

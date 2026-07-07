@@ -22,6 +22,8 @@ from asteroid.metrics import WERTracker, MockWERTracker
 
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 COMPUTE_METRICS = ["si_sdr", "sdr", "sir", "sar", "stoi",'pesq']
 
 
@@ -32,10 +34,8 @@ def main():
     # Handle device placement
     model_device = next(model.parameters()).device
     test_set = VoiceBankDataset(
-        csv_dir='./data/wav16k/max/test',
-        task='enh_single',
+        split='test',
         sample_rate=16000,
-        n_src=1,
         segment=None,
         return_id=True,
     )  # Uses all segment length
@@ -92,8 +92,10 @@ def main():
     print("Overall metrics :")
     pprint(final_results)
 
-    with open('Speech_Enhancement_new/knowledge_distillation_CLSKD/results/All_metric_teacher.json','w') as fp:
-        json.dump(final_results,fp) 
+    result_path = os.path.join(SCRIPT_DIR, 'results', 'All_metric_teacher.json')
+    os.makedirs(os.path.dirname(result_path), exist_ok=True)
+    with open(result_path,'w') as fp:
+        json.dump(final_results,fp)
 
 
 if __name__ == "__main__":

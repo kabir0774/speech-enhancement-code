@@ -1,13 +1,14 @@
 """
 Runs all 6 distillation methods (None, MSE, STFT, SPKD, ReviewKD, CLSKD)
-sequentially on the FULL VCTK-DEMAND dataset (data/wav16k/max/train-360 and
-dev, ~10,700 / ~872 files - see config.py), then parses each run's
-PyTorch Lightning CSV logs (lightning_logs/version_N/metrics.csv, written
-automatically by Lightning's default CSVLogger) to build the same
-WB-PESQ/STOI-per-epoch comparison chart + summary table used throughout
-this project (see output/dataset_size_progress.png,
-output/before_after_original_5files.png for the same visual format on
-smaller subsets).
+sequentially on the FULL VoiceBank-DEMAND-16k dataset (train.scp/test.scp
+under config.DATASET_ROOT, ~11,572 training utterances with a held-out
+validation slice per config.VAL_FRACTION - see dataloader.py's
+VoiceBankDataset and config.py), then parses each run's PyTorch Lightning
+CSV logs (lightning_logs/version_N/metrics.csv, written automatically by
+Lightning's default CSVLogger) to build the same WB-PESQ/STOI-per-epoch
+comparison chart + summary table used throughout this project (see
+output/dataset_size_progress.png, output/before_after_original_5files.png
+for the same visual format on smaller subsets).
 
 DO NOT run this on a small/laptop GPU. On a 6GB RTX 3050, the 900-file
 subset took ~30-50 minutes per method for 20 epochs; the full ~10,700-file

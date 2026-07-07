@@ -22,17 +22,19 @@ from asteroid.metrics import WERTracker, MockWERTracker
 
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 COMPUTE_METRICS = ["si_sdr", "sdr", "sir", "sar", "stoi",'pesq']
 SAMPLE_RATE = 16000
 n_save_ex = 5
 
 ## CLSKD model eval
-model_path = '/root/NTH_student/Speech_Enhancement_new/knowledge_distillation_CLSKD/checkpoint/the_best_model.pth'
-ex_save_dir = '/root/NTH_student/Speech_Enhancement_new/knowledge_distillation_CLSKD/example_CLSKD'
-resule_dir = '/root/NTH_student/Speech_Enhancement_new/knowledge_distillation_CLSKD/results/All_metric.json'
+model_path = os.path.join(SCRIPT_DIR, 'checkpoint', 'the_best_model.pth')
+ex_save_dir = os.path.join(SCRIPT_DIR, 'example_CLSKD')
+resule_dir = os.path.join(SCRIPT_DIR, 'results', 'All_metric.json')
 
 ## SPKD model eval
-#model_path = '/root/NTH_student/Speech_Enhancement_new/knowledge_distillation_CLSKD/checkpoint_SPKD/SPKD_best_model.pth'
+#model_path = os.path.join(SCRIPT_DIR, 'checkpoint_SPKD', 'SPKD_best_model.pth')
 
 def main():
     wer_tracker = (MockWERTracker())
@@ -40,10 +42,8 @@ def main():
     # Handle device placement
     model_device = next(model.parameters()).device
     test_set = VoiceBankDataset(
-        csv_dir='./data/wav16k/max/test',
-        task='enh_single',
+        split='test',
         sample_rate=SAMPLE_RATE,
-        n_src=1,
         segment=None,
         return_id=True,
     )  # Uses all segment length
@@ -115,8 +115,9 @@ def main():
     print("Overall metrics :")
     pprint(final_results)
 
+    os.makedirs(os.path.dirname(resule_dir), exist_ok=True)
     with open(resule_dir,'w') as fp:
-        json.dump(final_results,fp) 
+        json.dump(final_results,fp)
 
 
 if __name__ == "__main__":

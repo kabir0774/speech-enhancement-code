@@ -237,10 +237,8 @@ class KnowledgeDistillation(pl.LightningModule):
     
     def train_dataloader(self):
         train_dataset = VoiceBankDataset(
-            csv_dir='./data/wav16k/max/train-360',
-            task='enh_single',
+            split='train',
             sample_rate=16000,
-            n_src=1,
             segment=3,
         )
         train_loader = create_dataloader(mode='train',dataset=train_dataset)
@@ -248,10 +246,8 @@ class KnowledgeDistillation(pl.LightningModule):
 
     def val_dataloader(self):
         val_dataset = VoiceBankDataset(
-            csv_dir='./data/wav16k/max/dev',
-            task='enh_single',
+            split='val',
             sample_rate=16000,
-            n_src=1,
             segment=3,
         )
         self.val_dataset = val_dataset
@@ -262,11 +258,24 @@ class KnowledgeDistillation(pl.LightningModule):
 
 # setup float type
 torch.set_float32_matmul_precision('high')
+# Auto-tunes cuDNN's convolution algorithm selection for the fixed input
+# shape used during training (segment=3s -> constant tensor size), which
+# speeds things up once the first few batches have warmed it up. Safe here
+# because input shape doesn't vary between batches.
+torch.backends.cudnn.benchmark = True
 
 # Guard the training script body so DataLoader num_workers>0 (separate
 # worker processes) doesn't re-execute this whole file on Windows, which
 # uses process "spawn" and re-imports the main module in each worker.
 if __name__ == "__main__":
+    # All relative paths in this script (./conf.yml, ./checkpoint,
+    # ./data/...) are resolved against the process's current working
+    # directory, not this file's location - so running the script from
+    # anywhere other than code_only/ (e.g. via VS Code's Run button, or a
+    # shell sitting in a parent folder) breaks them. Anchor cwd to this
+    # file's directory so it works regardless of where it's launched from.
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     # read config file
     parser = argparse.ArgumentParser()
     with open("./conf.yml") as f:
@@ -292,8 +301,12 @@ if __name__ == "__main__":
                         verbose=True)
 
 
+    # TEMPORARY: allows `MAX_EPOCHS=2 python distill.py` for a quick sanity
+    # run without touching config.py's real default for full training runs.
+    max_epochs = int(os.environ.get("MAX_EPOCHS", cfg.max_epochs))
+
     # initialize trainer
-    trainer = pl.Trainer(max_epochs=cfg.max_epochs,
+    trainer = pl.Trainer(max_epochs=max_epochs,
                         accelerator="gpu" if torch.cuda.is_available() else "cpu",
                         devices=1,
                         # NOTE: precision="16-mixed" was tried for speed, but DCCRN's
