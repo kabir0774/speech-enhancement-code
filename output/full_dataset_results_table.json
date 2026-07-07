@@ -1,0 +1,56 @@
+[
+  {
+    "method": "None (no distillation)",
+    "final_pesq": 1.404,
+    "best_pesq": 1.404,
+    "final_stoi_pct": 88.96,
+    "best_stoi_pct": 88.96,
+    "final_si_sdr": -0.122,
+    "best_si_sdr": -0.122
+  },
+  {
+    "method": "MSE (Diff-style)",
+    "final_pesq": 1.321,
+    "best_pesq": 1.321,
+    "final_stoi_pct": 88.03,
+    "best_stoi_pct": 88.03,
+    "final_si_sdr": 1.588,
+    "best_si_sdr": 1.588
+  },
+  {
+    "method": "STFT-output distill",
+    "final_pesq": 1.193,
+    "best_pesq": 1.193,
+    "final_stoi_pct": 81.97,
+    "best_stoi_pct": 81.97,
+    "final_si_sdr": -9.506,
+    "best_si_sdr": -9.506
+  },
+  {
+    "method": "SPKD",
+    "final_pesq": 1.448,
+    "best_pesq": 1.448,
+    "final_stoi_pct": 89.92,
+    "best_stoi_pct": 89.92,
+    "final_si_sdr": -7.721,
+    "best_si_sdr": -7.721
+  },
+  {
+    "method": "ReviewKD",
+    "final_pesq": 1.505,
+    "best_pesq": 1.505,
+    "final_stoi_pct": 89.22,
+    "best_stoi_pct": 89.22,
+    "final_si_sdr": 3.263,
+    "best_si_sdr": 3.263
+  },
+  {
+    "method": "CLSKD (full method)",
+    "final_pesq": 1.271,
+    "best_pesq": 1.271,
+    "final_stoi_pct": 84.14,
+    "best_stoi_pct": 84.14,
+    "final_si_sdr": -7.114,
+    "best_si_sdr": -7.114
+  }
+]

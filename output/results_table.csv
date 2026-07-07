@@ -1,0 +1,7 @@
+method,final_pesq,best_pesq,final_stoi_pct,best_stoi_pct
+None,1.475,1.947,77.49,83.22
+MSE (Diff),1.29,1.736,77.56,85.69
+STFT,1.565,1.972,76.05,85.73
+SPKD,1.563,1.858,82.45,84.95
+ReviewKD,1.289,1.809,78.6,79.24
+CLSKD,1.636,1.798,85.1,85.43

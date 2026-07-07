@@ -1,0 +1,44 @@
+[
+  {
+    "method": "None",
+    "final_pesq": 1.475,
+    "final_stoi_pct": 77.49,
+    "best_pesq": 1.947,
+    "best_stoi_pct": 83.22
+  },
+  {
+    "method": "MSE (Diff)",
+    "final_pesq": 1.29,
+    "final_stoi_pct": 77.56,
+    "best_pesq": 1.736,
+    "best_stoi_pct": 85.69
+  },
+  {
+    "method": "STFT",
+    "final_pesq": 1.565,
+    "final_stoi_pct": 76.05,
+    "best_pesq": 1.972,
+    "best_stoi_pct": 85.73
+  },
+  {
+    "method": "SPKD",
+    "final_pesq": 1.563,
+    "final_stoi_pct": 82.45,
+    "best_pesq": 1.858,
+    "best_stoi_pct": 84.95
+  },
+  {
+    "method": "ReviewKD",
+    "final_pesq": 1.289,
+    "final_stoi_pct": 78.6,
+    "best_pesq": 1.809,
+    "best_stoi_pct": 79.24
+  },
+  {
+    "method": "CLSKD",
+    "final_pesq": 1.636,
+    "final_stoi_pct": 85.1,
+    "best_pesq": 1.798,
+    "best_stoi_pct": 85.43
+  }
+]

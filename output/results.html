@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CLSKD Distillation Comparison</title>
+<style>
+.viz-root {
+  --surface-1:      #fcfcfb;
+  --page:           #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --grid:           #e1e0d9;
+  --axis:           #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+
+  --series-none:     #2a78d6; /* blue */
+  --series-mse:      #1baf7a; /* aqua */
+  --series-stft:     #eda100; /* yellow */
+  --series-spkd:     #008300; /* green */
+  --series-reviewkd: #4a3aa7; /* violet */
+  --series-clskd:    #e34948; /* red */
+}
+@media (prefers-color-scheme: dark) {
+  .viz-root {
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --axis:           #383835;
+    --border:         rgba(255,255,255,0.10);
+
+    --series-none:     #3987e5;
+    --series-mse:      #199e70;
+    --series-stft:     #c98500;
+    --series-spkd:     #008300;
+    --series-reviewkd: #9085e9;
+    --series-clskd:    #e66767;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+.viz-root {
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding: 32px 20px 60px;
+  min-height: 100vh;
+}
+.wrap { max-width: 920px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 20px; }
+
+.callout {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+}
+.callout b { color: var(--text-primary); }
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px 12px;
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+.card h2 { font-size: 15px; margin: 0 0 2px; }
+.card .desc { font-size: 12.5px; color: var(--text-muted); margin: 0 0 14px; }
+
+svg { display: block; overflow: visible; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.axis-line { stroke: var(--axis); stroke-width: 1; }
+.axis-label { fill: var(--text-muted); font-size: 11px; }
+.series-line { fill: none; stroke-width: 2; }
+.hover-dot { r: 4; stroke: var(--surface-1); stroke-width: 2; }
+.crosshair { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px 20px; margin: 4px 0 18px; font-size: 12.5px; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.legend-swatch { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 10;
+  min-width: 150px;
+}
+.tooltip .t-epoch { color: var(--text-muted); margin-bottom: 4px; }
+.tooltip .t-row { display: flex; justify-content: space-between; gap: 12px; padding: 1px 0; }
+.tooltip .t-row .name { color: var(--text-secondary); }
+.tooltip .t-row .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+thead th { color: var(--text-muted); font-weight: 500; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.02em; border-bottom: 1px solid var(--grid); }
+tbody td { border-bottom: 1px solid var(--grid); color: var(--text-primary); }
+tbody tr:last-child td { border-bottom: none; font-weight: 600; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+
+footer { color: var(--text-muted); font-size: 11.5px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="viz-root">
+<div class="wrap">
+  <h1>CLSKD distillation methods — comparison</h1>
+  <p class="subtitle">Reproducing the reporting format of Cheng et al. 2022, Table 1 &amp; Figure 4 — run on this project's own data, not the paper's dataset</p>
+
+  <div class="callout">
+    <b>These numbers are not comparable to the paper's Table 1.</b> The paper trains on the Interspeech 2020 DNS Challenge
+    dataset — 60,000 training utterances from 500 hours of speech. This run used the same code path (fixed to actually execute),
+    the same student architecture (231K params, matching the paper's reported 0.23M), and real WB-PESQ/STOI —
+    but trained on only <b>4 training / 1 validation</b> example clips for 20 epochs. Treat this as a working demonstration of the
+    pipeline, not a scientific comparison of the distillation methods.
+  </div>
+
+  <div class="card">
+    <h2>WB-PESQ per epoch (validation)</h2>
+    <p class="desc">Mirrors Figure 4 in the paper. Hover the chart for exact values at any epoch.</p>
+    <div class="legend" id="legend"></div>
+    <div style="position:relative">
+      <svg id="chart" viewBox="0 0 860 340" width="100%" height="340"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Summary (final &amp; best epoch)</h2>
+    <p class="desc">Student is 231K params in every row (0.23M, matching the paper) &mdash; only the distillation loss changes.</p>
+    <table id="results-table"></table>
+  </div>
+
+  <footer>Data source: this session's training runs (lightning_logs versions 10&ndash;14, 17), example_CLSKD wavs as train/dev data.</footer>
+</div>
+</div>
+
+<script>
+const METHODS = [
+  { key: "None",       label: "None (no distillation)", color: "var(--series-none)" },
+  { key: "MSE (Diff)", label: "MSE (Diff-style)",        color: "var(--series-mse)" },
+  { key: "STFT",       label: "STFT-output distill",     color: "var(--series-stft)" },
+  { key: "SPKD",       label: "SPKD",                    color: "var(--series-spkd)" },
+  { key: "ReviewKD",   label: "ReviewKD",                color: "var(--series-reviewkd)" },
+  { key: "CLSKD",      label: "CLSKD (full method)",     color: "var(--series-clskd)" },
+];
+
+const CURVES = {"None": [{"epoch": 0.0, "pesq_epoch": 1.848996877670288, "stoi_epoch": 0.8319805264472961}, {"epoch": 1.0, "pesq_epoch": 1.946866750717163, "stoi_epoch": 0.7912399768829346}, {"epoch": 2.0, "pesq_epoch": 1.828552484512329, "stoi_epoch": 0.8322152495384216}, {"epoch": 3.0, "pesq_epoch": 1.866019606590271, "stoi_epoch": 0.7299816012382507}, {"epoch": 4.0, "pesq_epoch": 1.6908137798309326, "stoi_epoch": 0.7552837133407593}, {"epoch": 5.0, "pesq_epoch": 1.6911611557006836, "stoi_epoch": 0.7368249893188477}, {"epoch": 6.0, "pesq_epoch": 1.4447884559631348, "stoi_epoch": 0.7989364862442017}, {"epoch": 7.0, "pesq_epoch": 1.300331950187683, "stoi_epoch": 0.780234158039093}, {"epoch": 8.0, "pesq_epoch": 1.3637943267822266, "stoi_epoch": 0.698118269443512}, {"epoch": 9.0, "pesq_epoch": 1.274388313293457, "stoi_epoch": 0.7742683291435242}, {"epoch": 10.0, "pesq_epoch": 1.2472326755523682, "stoi_epoch": 0.7829514145851135}, {"epoch": 11.0, "pesq_epoch": 1.3138999938964844, "stoi_epoch": 0.7789355516433716}, {"epoch": 12.0, "pesq_epoch": 1.2750836610794067, "stoi_epoch": 0.7939833402633667}, {"epoch": 13.0, "pesq_epoch": 1.3894315958023071, "stoi_epoch": 0.7785012125968933}, {"epoch": 14.0, "pesq_epoch": 1.3946279287338257, "stoi_epoch": 0.8005470037460327}, {"epoch": 15.0, "pesq_epoch": 1.346118688583374, "stoi_epoch": 0.7824832797050476}, {"epoch": 16.0, "pesq_epoch": 1.320186734199524, "stoi_epoch": 0.7917250990867615}, {"epoch": 17.0, "pesq_epoch": 1.3608416318893433, "stoi_epoch": 0.799358069896698}, {"epoch": 18.0, "pesq_epoch": 1.452062726020813, "stoi_epoch": 0.8013207912445068}, {"epoch": 19.0, "pesq_epoch": 1.475354790687561, "stoi_epoch": 0.7748713493347168}], "MSE (Diff)": [{"epoch": 0.0, "pesq_epoch": 1.73626446723938, "stoi_epoch": 0.8569497466087341}, {"epoch": 1.0, "pesq_epoch": 1.7134878635406494, "stoi_epoch": 0.8483539819717407}, {"epoch": 2.0, "pesq_epoch": 1.64558207988739, "stoi_epoch": 0.837687611579895}, {"epoch": 3.0, "pesq_epoch": 1.479828119277954, "stoi_epoch": 0.8234044909477234}, {"epoch": 4.0, "pesq_epoch": 1.344362497329712, "stoi_epoch": 0.8125041127204895}, {"epoch": 5.0, "pesq_epoch": 1.3188800811767578, "stoi_epoch": 0.7335824966430664}, {"epoch": 6.0, "pesq_epoch": 1.21450936794281, "stoi_epoch": 0.7811641097068787}, {"epoch": 7.0, "pesq_epoch": 1.2658265829086304, "stoi_epoch": 0.7044429779052734}, {"epoch": 8.0, "pesq_epoch": 1.1856391429901123, "stoi_epoch": 0.7502413392066956}, {"epoch": 9.0, "pesq_epoch": 1.2418997287750244, "stoi_epoch": 0.6666006445884705}, {"epoch": 10.0, "pesq_epoch": 1.1884098052978516, "stoi_epoch": 0.7553956508636475}, {"epoch": 11.0, "pesq_epoch": 1.2500038146972656, "stoi_epoch": 0.6900144815444946}, {"epoch": 12.0, "pesq_epoch": 1.2117326259613037, "stoi_epoch": 0.7400779724121094}, {"epoch": 13.0, "pesq_epoch": 1.2452898025512695, "stoi_epoch": 0.7660583853721619}, {"epoch": 14.0, "pesq_epoch": 1.2258750200271606, "stoi_epoch": 0.7458409667015076}, {"epoch": 15.0, "pesq_epoch": 1.2663846015930176, "stoi_epoch": 0.7823801040649414}, {"epoch": 16.0, "pesq_epoch": 1.2707715034484863, "stoi_epoch": 0.7576431632041931}, {"epoch": 17.0, "pesq_epoch": 1.227261662483215, "stoi_epoch": 0.7636494636535645}, {"epoch": 18.0, "pesq_epoch": 1.356933355331421, "stoi_epoch": 0.6753510236740112}, {"epoch": 19.0, "pesq_epoch": 1.2902988195419312, "stoi_epoch": 0.7755525708198547}], "STFT": [{"epoch": 0.0, "pesq_epoch": 1.8398754596710205, "stoi_epoch": 0.8493058085441589}, {"epoch": 1.0, "pesq_epoch": 1.7759172916412354, "stoi_epoch": 0.8572794198989868}, {"epoch": 2.0, "pesq_epoch": 1.9722914695739744, "stoi_epoch": 0.8352680802345276}, {"epoch": 3.0, "pesq_epoch": 1.7211143970489502, "stoi_epoch": 0.8554592728614807}, {"epoch": 4.0, "pesq_epoch": 1.7370834350585938, "stoi_epoch": 0.8478749990463257}, {"epoch": 5.0, "pesq_epoch": 1.7739477157592771, "stoi_epoch": 0.8224583864212036}, {"epoch": 6.0, "pesq_epoch": 1.7875220775604248, "stoi_epoch": 0.7637065052986145}, {"epoch": 7.0, "pesq_epoch": 1.5125854015350342, "stoi_epoch": 0.8111293315887451}, {"epoch": 8.0, "pesq_epoch": 1.4440762996673584, "stoi_epoch": 0.810752272605896}, {"epoch": 9.0, "pesq_epoch": 1.4205551147460938, "stoi_epoch": 0.7893481254577637}, {"epoch": 10.0, "pesq_epoch": 1.375259280204773, "stoi_epoch": 0.7847914695739746}, {"epoch": 11.0, "pesq_epoch": 1.5208629369735718, "stoi_epoch": 0.7231479287147522}, {"epoch": 12.0, "pesq_epoch": 1.4414911270141602, "stoi_epoch": 0.7692978978157043}, {"epoch": 13.0, "pesq_epoch": 1.441358208656311, "stoi_epoch": 0.7868773341178894}, {"epoch": 14.0, "pesq_epoch": 1.3634021282196045, "stoi_epoch": 0.7877673506736755}, {"epoch": 15.0, "pesq_epoch": 1.3450584411621094, "stoi_epoch": 0.7771284580230713}, {"epoch": 16.0, "pesq_epoch": 1.4167101383209229, "stoi_epoch": 0.7967719435691833}, {"epoch": 17.0, "pesq_epoch": 1.3749308586120603, "stoi_epoch": 0.8037423491477966}, {"epoch": 18.0, "pesq_epoch": 1.392727613449097, "stoi_epoch": 0.7847936153411865}, {"epoch": 19.0, "pesq_epoch": 1.565280795097351, "stoi_epoch": 0.7605450749397278}], "SPKD": [{"epoch": 0.0, "pesq_epoch": 1.7958691120147705, "stoi_epoch": 0.8494560122489929}, {"epoch": 1.0, "pesq_epoch": 1.8582490682601929, "stoi_epoch": 0.7694874405860901}, {"epoch": 2.0, "pesq_epoch": 1.7780532836914062, "stoi_epoch": 0.83514404296875}, {"epoch": 3.0, "pesq_epoch": 1.5989614725112915, "stoi_epoch": 0.8377131819725037}, {"epoch": 4.0, "pesq_epoch": 1.6115479469299316, "stoi_epoch": 0.7775721549987793}, {"epoch": 5.0, "pesq_epoch": 1.5868957042694092, "stoi_epoch": 0.7911996245384216}, {"epoch": 6.0, "pesq_epoch": 1.4190716743469238, "stoi_epoch": 0.8017080426216125}, {"epoch": 7.0, "pesq_epoch": 1.3702973127365112, "stoi_epoch": 0.8106364011764526}, {"epoch": 8.0, "pesq_epoch": 1.342413067817688, "stoi_epoch": 0.7967440485954285}, {"epoch": 9.0, "pesq_epoch": 1.307985544204712, "stoi_epoch": 0.7879313230514526}, {"epoch": 10.0, "pesq_epoch": 1.477998971939087, "stoi_epoch": 0.6822662353515625}, {"epoch": 11.0, "pesq_epoch": 1.4543187618255615, "stoi_epoch": 0.7510915994644165}, {"epoch": 12.0, "pesq_epoch": 1.5429660081863403, "stoi_epoch": 0.7464932799339294}, {"epoch": 13.0, "pesq_epoch": 1.5012367963790894, "stoi_epoch": 0.7903218865394592}, {"epoch": 14.0, "pesq_epoch": 1.638988018035889, "stoi_epoch": 0.7114209532737732}, {"epoch": 15.0, "pesq_epoch": 1.6297004222869873, "stoi_epoch": 0.7907752990722656}, {"epoch": 16.0, "pesq_epoch": 1.5241913795471191, "stoi_epoch": 0.8251040577888489}, {"epoch": 17.0, "pesq_epoch": 1.511222243309021, "stoi_epoch": 0.7909891605377197}, {"epoch": 18.0, "pesq_epoch": 1.5772485733032229, "stoi_epoch": 0.8066588640213013}, {"epoch": 19.0, "pesq_epoch": 1.5634605884552002, "stoi_epoch": 0.8245365023612976}], "ReviewKD": [{"epoch": 0.0, "pesq_epoch": 1.809426188468933, "stoi_epoch": 0.7694040536880493}, {"epoch": 1.0, "pesq_epoch": 1.6143980026245115, "stoi_epoch": 0.7562660574913025}, {"epoch": 2.0, "pesq_epoch": 1.5180466175079346, "stoi_epoch": 0.7509139776229858}, {"epoch": 3.0, "pesq_epoch": 1.3540812730789185, "stoi_epoch": 0.7869033217430115}, {"epoch": 4.0, "pesq_epoch": 1.3436750173568726, "stoi_epoch": 0.7773324251174927}, {"epoch": 5.0, "pesq_epoch": 1.2534115314483645, "stoi_epoch": 0.7916359901428223}, {"epoch": 6.0, "pesq_epoch": 1.4017528295516968, "stoi_epoch": 0.6904723644256592}, {"epoch": 7.0, "pesq_epoch": 1.4194470643997192, "stoi_epoch": 0.7489154934883118}, {"epoch": 8.0, "pesq_epoch": 1.328226089477539, "stoi_epoch": 0.7629687190055847}, {"epoch": 9.0, "pesq_epoch": 1.440191626548767, "stoi_epoch": 0.713763415813446}, {"epoch": 10.0, "pesq_epoch": 1.3166791200637815, "stoi_epoch": 0.7647960186004639}, {"epoch": 11.0, "pesq_epoch": 1.455357789993286, "stoi_epoch": 0.6931803822517395}, {"epoch": 12.0, "pesq_epoch": 1.3256813287734983, "stoi_epoch": 0.7878818511962891}, {"epoch": 13.0, "pesq_epoch": 1.2940101623535156, "stoi_epoch": 0.7819041609764099}, {"epoch": 14.0, "pesq_epoch": 1.380744695663452, "stoi_epoch": 0.7414998412132263}, {"epoch": 15.0, "pesq_epoch": 1.301499605178833, "stoi_epoch": 0.7923539876937866}, {"epoch": 16.0, "pesq_epoch": 1.2928788661956787, "stoi_epoch": 0.7663874626159668}, {"epoch": 17.0, "pesq_epoch": 1.318982720375061, "stoi_epoch": 0.767460286617279}, {"epoch": 18.0, "pesq_epoch": 1.3252819776535034, "stoi_epoch": 0.7647463083267212}, {"epoch": 19.0, "pesq_epoch": 1.2888802289962769, "stoi_epoch": 0.7859859466552734}], "CLSKD": [{"epoch": 0.0, "pesq_epoch": 1.788238286972046, "stoi_epoch": 0.8542957901954651}, {"epoch": 1.0, "pesq_epoch": 1.604055404663086, "stoi_epoch": 0.8244737982749939}, {"epoch": 2.0, "pesq_epoch": 1.3073488473892212, "stoi_epoch": 0.7338244318962097}, {"epoch": 3.0, "pesq_epoch": 1.3856282234191897, "stoi_epoch": 0.8118239641189575}, {"epoch": 4.0, "pesq_epoch": 1.45550274848938, "stoi_epoch": 0.8131967186927795}, {"epoch": 5.0, "pesq_epoch": 1.4987502098083496, "stoi_epoch": 0.7381150722503662}, {"epoch": 6.0, "pesq_epoch": 1.6456304788589478, "stoi_epoch": 0.7088795900344849}, {"epoch": 7.0, "pesq_epoch": 1.6622527837753296, "stoi_epoch": 0.7987592816352844}, {"epoch": 8.0, "pesq_epoch": 1.7176307439804075, "stoi_epoch": 0.7587164044380188}, {"epoch": 9.0, "pesq_epoch": 1.7374900579452517, "stoi_epoch": 0.7396222949028015}, {"epoch": 10.0, "pesq_epoch": 1.5627275705337524, "stoi_epoch": 0.8211591839790344}, {"epoch": 11.0, "pesq_epoch": 1.6628234386444092, "stoi_epoch": 0.8096708655357361}, {"epoch": 12.0, "pesq_epoch": 1.6491732597351074, "stoi_epoch": 0.8241789937019348}, {"epoch": 13.0, "pesq_epoch": 1.5961673259735107, "stoi_epoch": 0.823161780834198}, {"epoch": 14.0, "pesq_epoch": 1.79803466796875, "stoi_epoch": 0.7838547825813293}, {"epoch": 15.0, "pesq_epoch": 1.5727336406707764, "stoi_epoch": 0.8326718807220459}, {"epoch": 16.0, "pesq_epoch": 1.6177995204925537, "stoi_epoch": 0.8461407423019409}, {"epoch": 17.0, "pesq_epoch": 1.6305124759674072, "stoi_epoch": 0.842939555644989}, {"epoch": 18.0, "pesq_epoch": 1.6624064445495603, "stoi_epoch": 0.8358593583106995}, {"epoch": 19.0, "pesq_epoch": 1.6356135606765747, "stoi_epoch": 0.8509700298309326}]};
+const TABLE_ROWS = [{"method": "None", "final_pesq": 1.475, "final_stoi_pct": 77.49, "best_pesq": 1.947, "best_stoi_pct": 83.22}, {"method": "MSE (Diff)", "final_pesq": 1.29, "final_stoi_pct": 77.56, "best_pesq": 1.736, "best_stoi_pct": 85.69}, {"method": "STFT", "final_pesq": 1.565, "final_stoi_pct": 76.05, "best_pesq": 1.972, "best_stoi_pct": 85.73}, {"method": "SPKD", "final_pesq": 1.563, "final_stoi_pct": 82.45, "best_pesq": 1.858, "best_stoi_pct": 84.95}, {"method": "ReviewKD", "final_pesq": 1.289, "final_stoi_pct": 78.6, "best_pesq": 1.809, "best_stoi_pct": 79.24}, {"method": "CLSKD", "final_pesq": 1.636, "final_stoi_pct": 85.1, "best_pesq": 1.798, "best_stoi_pct": 85.43}];
+
+// ---- legend ----
+const legendEl = document.getElementById("legend");
+METHODS.forEach(m => {
+  const item = document.createElement("div");
+  item.className = "legend-item";
+  item.innerHTML = `<span class="legend-swatch" style="background:${m.color}"></span>${m.label}`;
+  legendEl.appendChild(item);
+});
+
+// ---- chart ----
+const svg = document.getElementById("chart");
+const W = 860, H = 340;
+const M = { top: 12, right: 16, bottom: 34, left: 40 };
+const plotW = W - M.left - M.right;
+const plotH = H - M.top - M.bottom;
+
+const epochs = CURVES["CLSKD"].map(d => d.epoch);
+const allVals = METHODS.flatMap(m => CURVES[m.key].map(d => d.pesq_epoch));
+const yMin = Math.floor(Math.min(...allVals) * 10) / 10 - 0.05;
+const yMax = Math.ceil(Math.max(...allVals) * 10) / 10 + 0.05;
+const xMin = Math.min(...epochs), xMax = Math.max(...epochs);
+
+function xScale(e) { return M.left + (e - xMin) / (xMax - xMin) * plotW; }
+function yScale(v) { return M.top + (1 - (v - yMin) / (yMax - yMin)) * plotH; }
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+// gridlines + y-axis labels
+const yTicks = 5;
+for (let i = 0; i <= yTicks; i++) {
+  const v = yMin + (yMax - yMin) * i / yTicks;
+  const y = yScale(v);
+  svg.appendChild(svgEl("line", { class: "gridline", x1: M.left, x2: W - M.right, y1: y, y2: y }));
+  const label = svgEl("text", { class: "axis-label", x: M.left - 8, y: y + 4, "text-anchor": "end" });
+  label.textContent = v.toFixed(2);
+  svg.appendChild(label);
+}
+// x-axis labels
+[0, 5, 10, 15, 19].forEach(e => {
+  const x = xScale(e);
+  const label = svgEl("text", { class: "axis-label", x, y: H - M.bottom + 18, "text-anchor": "middle" });
+  label.textContent = "epoch " + e;
+  svg.appendChild(label);
+});
+svg.appendChild(svgEl("line", { class: "axis-line", x1: M.left, x2: W - M.right, y1: H - M.bottom, y2: H - M.bottom }));
+
+// lines
+METHODS.forEach(m => {
+  const pts = CURVES[m.key].map(d => `${xScale(d.epoch)},${yScale(d.pesq_epoch)}`).join(" ");
+  svg.appendChild(svgEl("polyline", { class: "series-line", points: pts, stroke: m.color }));
+});
+
+// crosshair + hover dots
+const crosshair = svgEl("line", { class: "crosshair", y1: M.top, y2: H - M.bottom });
+svg.appendChild(crosshair);
+const hoverDots = {};
+METHODS.forEach(m => {
+  const dot = svgEl("circle", { class: "hover-dot", fill: m.color, cx: -100, cy: -100 });
+  svg.appendChild(dot);
+  hoverDots[m.key] = dot;
+});
+
+const tooltip = document.getElementById("tooltip");
+const overlay = svgEl("rect", { x: M.left, y: M.top, width: plotW, height: plotH, fill: "transparent" });
+svg.appendChild(overlay);
+
+overlay.addEventListener("mousemove", (ev) => {
+  const rect = svg.getBoundingClientRect();
+  const scaleX = W / rect.width;
+  const mouseX = (ev.clientX - rect.left) * scaleX;
+  const epochFloat = xMin + (mouseX - M.left) / plotW * (xMax - xMin);
+  const epoch = Math.round(Math.max(xMin, Math.min(xMax, epochFloat)));
+  const x = xScale(epoch);
+
+  crosshair.setAttribute("x1", x);
+  crosshair.setAttribute("x2", x);
+  crosshair.style.opacity = 1;
+
+  let html = `<div class="t-epoch">Epoch ${epoch}</div>`;
+  METHODS.forEach(m => {
+    const d = CURVES[m.key][epoch];
+    hoverDots[m.key].setAttribute("cx", x);
+    hoverDots[m.key].setAttribute("cy", yScale(d.pesq_epoch));
+    html += `<div class="t-row"><span class="name">${m.label}</span><span class="val">${d.pesq_epoch.toFixed(2)}</span></div>`;
+  });
+  tooltip.innerHTML = html;
+  tooltip.style.opacity = 1;
+
+  const wrapRect = svg.parentElement.getBoundingClientRect();
+  const px = (ev.clientX - wrapRect.left) + 14;
+  const py = (ev.clientY - wrapRect.top) - 20;
+  tooltip.style.left = px + "px";
+  tooltip.style.top = py + "px";
+});
+overlay.addEventListener("mouseleave", () => {
+  crosshair.style.opacity = 0;
+  tooltip.style.opacity = 0;
+  Object.values(hoverDots).forEach(d => { d.setAttribute("cx", -100); d.setAttribute("cy", -100); });
+});
+
+// ---- table ----
+const table = document.getElementById("results-table");
+const methodMeta = Object.fromEntries(METHODS.map(m => [m.key, m]));
+let thead = "<thead><tr><th>Method</th><th>Final PESQ</th><th>Best PESQ</th><th>Final STOI %</th><th>Best STOI %</th></tr></thead>";
+let tbody = "<tbody>";
+TABLE_ROWS.forEach(r => {
+  const meta = methodMeta[r.method];
+  tbody += `<tr><td><span class="dot" style="background:${meta.color}"></span>${meta.label}</td>` +
+    `<td>${r.final_pesq.toFixed(3)}</td><td>${r.best_pesq.toFixed(3)}</td>` +
+    `<td>${r.final_stoi_pct.toFixed(2)}</td><td>${r.best_stoi_pct.toFixed(2)}</td></tr>`;
+});
+tbody += "</tbody>";
+table.innerHTML = thead + tbody;
+</script>
+</body>
+</html>
