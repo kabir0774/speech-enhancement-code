@@ -1,0 +1,20 @@
+{
+  "None (no distillation)": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_60/metrics.csv"
+  },
+  "MSE (Diff-style)": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_63/metrics.csv"
+  },
+  "STFT-output distill": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_64/metrics.csv"
+  },
+  "SPKD": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_65/metrics.csv"
+  },
+  "ReviewKD": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_66/metrics.csv"
+  },
+  "CLSKD (full method)": {
+    "metrics_csv": "/home/harleen_ece/speech-enhancement-code/lightning_logs/version_67/metrics.csv"
+  }
+}
